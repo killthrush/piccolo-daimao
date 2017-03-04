@@ -87,3 +87,16 @@ ENV/
 
 # Rope project settings
 .ropeproject
+
+# Vagrant resources
+.vagrant
+ubuntu-*.log
+
+# Pycharm settings
+.idea
+
+# virtualenv resources
+pip-selfcheck.json
+apps/python-falcon/bin
+apps/python-falcon/local
+python2.7
