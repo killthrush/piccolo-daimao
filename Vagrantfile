@@ -27,19 +27,32 @@ Vagrant.configure(2) do |config|
     sudo mkdir -p $DATABASE_PATH
 
     # Set up extra repositories
-    sudo add-apt-repository ppa:pypy/ppa
+    rm erlang-solutions_*.deb || true
+    wget https://packages.erlang-solutions.com/erlang-solutions_1.0_all.deb && sudo dpkg -i erlang-solutions_1.0_all.deb
     sudo apt-get update
 
     # Set up python runtime environment
     PYTHON_APP_PATH="$SOURCE_PATH/python-falcon"
     sudo apt-get install -y python-pip
-    sudo apt-get install -y pypy
     sudo pip install --upgrade pip
     sudo pip install virtualenv
-    virtualenv $PYTHON_APP_PATH
+
+    # Set up phoenix/elixir runtime environment
+    sudo apt-get install -y esl-erlang
+    sudo apt-get install -y elixir
+    mix local.hex
+    mix archive.install https://github.com/phoenixframework/archives/raw/master/phoenix_new.ez
+
+    # Set up nodejs runtime environment
+    sudo apt-get install -y npm
+    npm upgrade
+    sudo npm install -g n
+    sudo n latest
+
     cd $PYTHON_APP_PATH
-    source ./bin/activate
     pip install -r ./requirements.txt
+    virtualenv $PYTHON_APP_PATH
+    source ./bin/activate
 
     # Set up SQLite
     sudo apt-get install -y sqlite3 libsqlite3-dev
