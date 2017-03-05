@@ -7,11 +7,7 @@ use Mix.Config
 
 # Configures the endpoint
 config :web, Web.Endpoint,
-  url: [host: "localhost"],
-  secret_key_base: "tICiU2MbHpN7bJQbc3ORwqSqjFBHQW7g2HG5N4JOOZV4ztUIlyB/vCK8CK8Q7FLi",
-  render_errors: [view: Web.ErrorView, accepts: ~w(html json)],
-  pubsub: [name: Web.PubSub,
-           adapter: Phoenix.PubSub.PG2]
+  url: [host: "localhost"]
 
 # Configures Elixir's Logger
 config :logger, :console,
