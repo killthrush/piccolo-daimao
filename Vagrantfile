@@ -47,6 +47,7 @@ Vagrant.configure(2) do |config|
     sudo apt-get install -y npm
     npm upgrade
     sudo npm install -g n
+    sudo npm install -g nodemon
     sudo n latest
 
     cd $PYTHON_APP_PATH
@@ -54,7 +55,8 @@ Vagrant.configure(2) do |config|
     virtualenv $PYTHON_APP_PATH
     source ./bin/activate
 
-    # Set up SQLite
+    # Set up SQLite & redis
+    sudo apt-get install -y redis-server
     sudo apt-get install -y sqlite3 libsqlite3-dev
     cd $DATABASE_PATH
     source $SOURCE_PATH/sqlite/run_script.sh $SOURCE_PATH/sqlite/create_database.sql

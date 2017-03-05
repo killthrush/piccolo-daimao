@@ -102,3 +102,6 @@ apps/python-falcon/local
 python2.7
 apps/python-falcon/lib-python
 apps/python-falcon/site-packages
+
+# NPM/node dependencies
+apps/node-express/node_modules
