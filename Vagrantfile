@@ -26,7 +26,8 @@ Vagrant.configure(2) do |config|
     DATABASE_PATH=$WRITE_PATH/sqlite
     sudo mkdir -p $DATABASE_PATH
 
-    # Set up extra repositories
+    # Set up extra repositories & NTP
+    sudo apt-get install ntpdate
     rm erlang-solutions_*.deb || true
     wget https://packages.erlang-solutions.com/erlang-solutions_1.0_all.deb && sudo dpkg -i erlang-solutions_1.0_all.deb
     sudo apt-get update
@@ -36,24 +37,30 @@ Vagrant.configure(2) do |config|
     sudo apt-get install -y python-pip
     sudo pip install --upgrade pip
     sudo pip install virtualenv
+    cd $PYTHON_APP_PATH
+    pip install -r ./requirements.txt
+    virtualenv $PYTHON_APP_PATH
+    source ./bin/activate
 
     # Set up phoenix/elixir runtime environment
+    ELIXIR_APP_PATH="$SOURCE_PATH/elixir-phoenix"
     sudo apt-get install -y esl-erlang
     sudo apt-get install -y elixir
-    mix local.hex
-    mix archive.install https://github.com/phoenixframework/archives/raw/master/phoenix_new.ez
+    cd $ELIXIR_APP_PATH
+    mix local.hex --force
+    mix archive.install --force https://github.com/phoenixframework/archives/raw/master/phoenix_new.ez
+    mix deps.get --force
+    mix local.rebar --force
 
     # Set up nodejs runtime environment
+    NODE_APP_PATH="$SOURCE_PATH/node"
     sudo apt-get install -y npm
     npm upgrade
     sudo npm install -g n
     sudo npm install -g nodemon
     sudo n latest
-
-    cd $PYTHON_APP_PATH
-    pip install -r ./requirements.txt
-    virtualenv $PYTHON_APP_PATH
-    source ./bin/activate
+    cd $NODE_APP_PATH
+    npm install
 
     # Set up SQLite & redis
     sudo apt-get install -y redis-server
