@@ -6,7 +6,7 @@ import redis
 import gevent
 from gevent.lock import Semaphore
 
-PORT = 3000
+PORT = 3333
 HOST = '0.0.0.0'
 BACKGROUND_WORKER_SECONDS = 1
 
@@ -59,6 +59,7 @@ class NumberResource(object):
 
 
 app = falcon.API()
+app.req_options.auto_parse_form_urlencoded=True
 numbers = NumberResource()
 gevent.spawn(numbers.store_periodically)
 app.add_route('/increment', numbers)
