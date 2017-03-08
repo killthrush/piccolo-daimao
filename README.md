@@ -52,7 +52,7 @@ cd /usr/local/piccolo-daimao/apps/python-falcon
 python app/consumer.py /var/local/piccolo-daimao/sqlite/numbers.db
 ```
 
-Then take aim and fire with a load testing tool!  There's some rudimentary console logging available to let you know things are working.  To check results, the database is located by default at `/var/local/piccolo-daimao/sqlite/numbers.db`.  There are a few useful helpers that Vegeta can use as well - see "Extras" below.
+Then take aim and fire with a load testing tool!  There's some rudimentary console logging available to let you know things are working.  To check results, the database is located by default at `/var/local/piccolo-daimao/sqlite/numbers.db`.  There are a few useful helpers that Vegeta can use as well - see "Load testing with Vegeta" below.
 
 # Design Choices
 
@@ -72,7 +72,7 @@ Once we are able to accept large numbers of connections, the next step is to des
 
 ## Designing for scale-out
 
-The choice to introduce Redis into the equation might seem a bit gratuitous.  Based on cursory testing, it seems feasible that a single web process with the "gear ratio" algorithm in place could slow things down enough to keep sqlite from running hot.  But there were two things that concerned me about this - 1) sqlite is writing to disk and essentially doing a fair amount of work relative to one of the super-lightweight web requests, and even with an event loop, I suspect this would reduce the throughput unacceptably.  2) If we added more servers, we would potentially have to deal with concurrent writes in sqlite and that doesn't sound fun.  I would much rather deal with that elsewhere and redis seems like a perfect intermediary.  We could push values atomically to redis without blocking, and then a separate single-threaded process (the Consumer) can pop values and write to sqlite without database contention.  If we really wanted to get fancy and add lots of web workers, we could ensure that redis doesn't fill up by adding more Consumers, and partition the keyspace that each Consumer looks at.
+The choice to introduce Redis into the equation might seem a bit gratuitous.  Based on cursory testing, it seems feasible that a single web process with the "gear ratio" algorithm in place could slow things down enough to keep sqlite from running hot.  But there were two things that concerned me about this - 1) sqlite is writing to disk and essentially doing a fair amount of work relative to one of the super-lightweight web requests, and even with an event loop, I suspect this would reduce the throughput unacceptably.  2) If we added more servers or web processes, we would potentially have to deal with concurrent writes in sqlite and that doesn't sound fun.  I would much rather deal with that elsewhere and redis seems like a perfect intermediary.  We could push values atomically and very quickly to redis without requiring synchronization constructs, and then a separate single-threaded process (the Consumer) can pop values and write to sqlite without database contention.  If we really wanted to get fancy and add lots of web workers, we could ensure that redis doesn't fill up by adding more Consumers, and partition/shard the keyspace that each Consumer looks at.
 
 # Dependencies
 
