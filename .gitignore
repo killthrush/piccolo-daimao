@@ -6,5 +6,6 @@ ubuntu-*.log
 .idea
 
 # Vegeta output folder
-vegeta
-
+vegeta/*.bin
+vegeta/*.html
+random*

@@ -80,19 +80,23 @@ MIX_ENV=prod mix compile.protocols
 MIX_ENV=prod PORT=3333 elixir -pa _build/prod/consolidated -S mix phoenix.server
 ```
 
-Vegeta is not really necessary for testing but it *is* really useful. Installing it and running the following command from the repository's `vegeta` driectory on a separate host will really pile on the hurt:
-
-```
-python create_targets.py 9000 targets.txt && vegeta attack -rate 9000 -output vegeta/out.bin -targets targets.txt
-```
-
-You can also run the test profile, which provides a moderate load, but does it in such a way that you can easily check the math in the database afterward.  It's recommended that you empty the database and restart the python processes before testing.
-
+Vegeta is not really necessary for testing but it *is* really useful. Installing it and running the following command from the repository's `vegeta` directory on a separate host will perform a simple load test, useful for checking the math.  It's recommended that you empty the database and restart the python processes before testing.:
 ```
 cd vegeta
 echo "POST http://<yourserver>:3333/increment" | vegeta attack -rate 1100 -output out.bin -header "Content-Type: application/x-www-form-urlencoded" -body "./testbody"
 ```
 
+You can also run the insane mode profile, which really piles on the hurt:
+```
+python create_targets.py 9000 <yourserver> && vegeta attack -rate 9000 -output out.bin -header "Content-Type: application/x-www-form-urlencoded" -targets random_targets.txt 
+```
+
+After a test, you can run the following to see a simple report:
+```
+vegeta report -inputs out.bin -reporter text
+```
+
+See the Vegeta docs for more details on testing options and reporting output.
 
 # Design Choices
 
