@@ -2,6 +2,8 @@
 
 An exploration of web app designs used to implement a high-throughput 'incrementor'.  The web app should accept a high number of concurrent POST requests containing key-value pairs.  The values are all integers, and the challenge is to sum those values continuously (and correctly) into a sqlite database without catching fire, and without introducing too much latency between the actual state(s) in the web apps and the state in the database.
 
+I've tried a few different ideas here, at present NodeJS, Phoenix, and Python.  Though I was really impressed with the raw out-of-the box performance of Phoenix, and the simplicity of NodeJS, I've opted to fully implement the Python solution since I could implement and test it faster than the others.  The same general pattern can be applied to the other languages without much effort.
+
 # TL;DR - How do I run this thing?
 
 ## Vagrant
@@ -52,52 +54,6 @@ python app/consumer.py /var/local/piccolo-daimao/sqlite/numbers.db
 
 Then take aim and fire with a load testing tool!  There's some rudimentary console logging available to let you know things are working.  To check results, the database is located by default at `/var/local/piccolo-daimao/sqlite/numbers.db`.  There are a few useful helpers that Vegeta can use as well - see "Extras" below.
 
-## Dependencies
-
-As mentioned in the setup scripts, this project depends on the following, some of which are installed on the system and some are installed by framework-specific package managers:
-* Python 2.7 (installed by default on many distros)
-* NTP util - allows clock syncing when vagrant VMs drift off (a common problem, and totally optional)
-* Erlang VM and Elixir
-* Python 2.7's pip package manager
-* NPM - Node package manager - allows us to bootstrap a NodeJS environment
-* Redis
-* SQLite
-
-## Extra stuff
-
-You *can* run the Phoenix and Node projects and fire requests at them - they just don't do any actual work and exist merely to see roughly how fast each framework *could* be.
-
-To run the Node project:
-```
-cd /usr/local/piccolo-daimao/apps/node-express
-nodemon
-```
-
-To run the Phoenix project:
-```
-cd /usr/local/piccolo-daimao/apps/elixir-phoenix
-MIX_ENV=prod mix compile.protocols
-MIX_ENV=prod PORT=3333 elixir -pa _build/prod/consolidated -S mix phoenix.server
-```
-
-Vegeta is not really necessary for testing but it *is* really useful. Installing it and running the following command from the repository's `vegeta` directory on a separate host will perform a simple load test, useful for checking the math.  It's recommended that you empty the database and restart the python processes before testing.:
-```
-cd vegeta
-echo "POST http://<yourserver>:3333/increment" | vegeta attack -rate 1100 -output out.bin -header "Content-Type: application/x-www-form-urlencoded" -body "./testbody"
-```
-
-You can also run the insane mode profile, which really piles on the hurt:
-```
-python create_targets.py 9000 <yourserver> && vegeta attack -rate 9000 -output out.bin -header "Content-Type: application/x-www-form-urlencoded" -targets random_targets.txt 
-```
-
-After a test, you can run the following to see a simple report:
-```
-vegeta report -inputs out.bin -reporter text
-```
-
-See the Vegeta docs for more details on testing options and reporting output.
-
 # Design Choices
 
 This problem is fairly trivial to solve *correctly*, however making the solution scale is not so trivial.  I think I've come up with something that works decently for a production web app.  Making it scale ridiculously (e.g. [LMAX](https://martinfowler.com/articles/lmax.html)) is a bit beyond the scope of this project.  
@@ -118,6 +74,53 @@ Once we are able to accept large numbers of connections, the next step is to des
 
 The choice to introduce Redis into the equation might seem a bit gratuitous.  Based on cursory testing, it seems feasible that a single web process with the "gear ratio" algorithm in place could slow things down enough to keep sqlite from running hot.  But there were two things that concerned me about this - 1) sqlite is writing to disk and essentially doing a fair amount of work relative to one of the super-lightweight web requests, and even with an event loop, I suspect this would reduce the throughput unacceptably.  2) If we added more servers, we would potentially have to deal with concurrent writes in sqlite and that doesn't sound fun.  I would much rather deal with that elsewhere and redis seems like a perfect intermediary.  We could push values atomically to redis without blocking, and then a separate single-threaded process (the Consumer) can pop values and write to sqlite without database contention.  If we really wanted to get fancy and add lots of web workers, we could ensure that redis doesn't fill up by adding more Consumers, and partition the keyspace that each Consumer looks at.
 
+# Dependencies
+
+As mentioned in the setup scripts, this project depends on the following, some of which are installed on the system and some are installed by framework-specific package managers:
+* Python 2.7 (installed by default on many distros)
+* NTP util - allows clock syncing when vagrant VMs drift off (a common problem, and totally optional)
+* Erlang VM and Elixir
+* Python 2.7's pip package manager
+* NPM - Node package manager - allows us to bootstrap a NodeJS environment
+* Redis
+* SQLite
+
+# Load testing with Vegeta
+
+Vegeta is not really necessary for testing but it *is* really useful. Installing it and running the following command from the repository's `vegeta` directory on a separate host will perform a simple load test, useful for checking the math.  It's recommended that you empty the database and restart the python processes before testing.:
+```
+cd vegeta
+echo "POST http://<yourserver>:3333/increment" | vegeta attack -rate 1100 -output out.bin -header "Content-Type: application/x-www-form-urlencoded" -body "./testbody"
+```
+
+You can also run the insane mode profile, which really piles on the hurt:
+```
+python create_targets.py 9000 <yourserver> && vegeta attack -rate 9000 -output out.bin -header "Content-Type: application/x-www-form-urlencoded" -targets random_targets.txt 
+```
+
+After a test, you can run the following to see a simple report:
+```
+vegeta report -inputs out.bin -reporter text
+```
+
+See the Vegeta docs for more details on testing options and reporting output.
+
+# Extra stuff
+
+You *can* run the Phoenix and Node projects and fire requests at them - they just don't do any actual work and exist merely to see roughly how fast each framework *could* be.
+
+To run the Node project:
+```
+cd /usr/local/piccolo-daimao/apps/node-express
+nodemon
+```
+
+To run the Phoenix project:
+```
+cd /usr/local/piccolo-daimao/apps/elixir-phoenix
+MIX_ENV=prod mix compile.protocols
+MIX_ENV=prod PORT=3333 elixir -pa _build/prod/consolidated -S mix phoenix.server
+```
 
 # Future work
 
